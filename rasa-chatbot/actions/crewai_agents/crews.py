@@ -3,8 +3,8 @@ import re
 
 from crewai import Crew, Process
 
-from .agents import create_input_validator_agent, create_intent_clarifier_agent, create_error_recovery_agent
-from .tasks import create_validation_task, create_clarification_task, create_error_recovery_task
+from .agents import create_input_validator_agent, create_intent_clarifier_agent, create_error_recovery_agent, create_booking_extractor_agent
+from .tasks import create_validation_task, create_clarification_task, create_error_recovery_task, create_extraction_task
 
 
 def run_input_validation_crew(trip_details: dict) -> dict:
@@ -122,3 +122,34 @@ def run_error_recovery_crew(errors: list, trip_details: dict) -> dict:
         "recovery_messages": errors,
         "suggested_corrections": {},
     }
+
+
+def run_extraction_crew(message: str) -> dict:
+    """
+    Phase 3 — Runs the Booking Info Extractor Crew on a free-form user message.
+
+    Extracts all available booking fields at once from natural language.
+    Returns a dict with the same 7 keys as booking slots (all may be None).
+    Requires Ollama to be running.
+    """
+    agent = create_booking_extractor_agent()
+    task = create_extraction_task(agent, message)
+
+    crew = Crew(
+        agents=[agent],
+        tasks=[task],
+        process=Process.sequential,
+        verbose=False,
+    )
+
+    result = crew.kickoff()
+    raw = str(result)
+
+    json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return {}

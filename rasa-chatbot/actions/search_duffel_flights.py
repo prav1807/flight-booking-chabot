@@ -58,9 +58,13 @@ class SearchDuffelFlights(Action):
 
             if not offers:
                 dispatcher.utter_message(
-                    text="I could not find available flights for this route and date."
+                    text=(
+                        "I searched but couldn't find any available flights for this route and date.\n\n"
+                        "You can try different travel dates or book directly at:\n"
+                        "https://www.emirates.com"
+                    )
                 )
-                return []
+                return [SlotSet("flights_available", False)]
 
             offer_map = {}
             message = "I found these flight offers:\n\n"
@@ -97,7 +101,7 @@ class SearchDuffelFlights(Action):
 
             dispatcher.utter_message(text=message)
 
-            return [SlotSet("duffel_offer_map", offer_map)]
+            return [SlotSet("duffel_offer_map", offer_map), SlotSet("flights_available", True)]
 
         except Exception as e:
             print("DUFFEL ERROR:", str(e))
@@ -111,4 +115,4 @@ class SearchDuffelFlights(Action):
                 )
             )
 
-            return []
+            return [SlotSet("flights_available", False)]

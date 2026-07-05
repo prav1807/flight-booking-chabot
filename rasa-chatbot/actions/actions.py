@@ -11,3 +11,4 @@ from .check_airport_options import CheckAirportOptions
 from .retrieve_booking_from_supabase import RetrieveBookingFromSupabase
 from .crewai_clarify_intent import CrewAIClarifyIntent
 from .crewai_validate_inputs import CrewAIValidateInputs
+from .crewai_extract_trip_info import CrewAIExtractTripInfo

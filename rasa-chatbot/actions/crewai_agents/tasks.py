@@ -124,3 +124,41 @@ def create_error_recovery_task(agent, errors: list, trip_details: dict) -> Task:
         ),
         agent=agent,
     )
+
+
+def create_extraction_task(agent, message: str) -> Task:
+    """
+    Phase 3 — Task for the Booking Info Extractor Agent.
+    Extracts all available booking fields from a free-form natural language message.
+    """
+    today = date.today().isoformat()
+    return Task(
+        description=(
+            f"Extract all available flight booking information from this message:\n"
+            f"\"{message}\"\n\n"
+            f"Today's date: {today}\n\n"
+            "For each field, extract what is explicitly mentioned. Do NOT guess or assume.\n\n"
+            "1. If a city or airport is mentioned: use the Airport Lookup Tool to get the IATA code.\n"
+            "   Input: {{\"query\": \"<city name>\"}}\n"
+            "2. If a date is mentioned: use the Date Interpreter Tool to convert to YYYY-MM-DD.\n"
+            "   Input: {{\"date_text\": \"<date expression>\", \"today\": \"{today}\"}}\n"
+            "3. For passengers: extract any number or phrase like 'wife and me' (=2), 'just me' (=1).\n"
+            "4. For travel class: look for economy, business, first class, premium economy.\n"
+            "5. For trip type: look for one-way, return, round trip.\n\n"
+            "Return ONLY a valid JSON object with NO extra text:\n"
+            "{{\n"
+            '  "origin": "IATA code or city name, or null if not mentioned",\n'
+            '  "destination": "IATA code or city name, or null if not mentioned",\n'
+            '  "trip_type": "one-way or return, or null if not mentioned",\n'
+            '  "departure_date": "YYYY-MM-DD, or null if not mentioned",\n'
+            '  "return_date": "YYYY-MM-DD, or null if not mentioned",\n'
+            '  "passengers": "number as string, or null if not mentioned",\n'
+            '  "travel_class": "economy/business/premium_economy/first, or null if not mentioned"\n'
+            "}}"
+        ).format(today=today),
+        expected_output=(
+            "JSON object with 7 keys: origin, destination, trip_type, departure_date, "
+            "return_date, passengers, travel_class. Null for fields not mentioned."
+        ),
+        agent=agent,
+    )

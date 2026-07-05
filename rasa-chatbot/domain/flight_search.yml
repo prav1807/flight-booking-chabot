@@ -27,16 +27,12 @@ slots:
   passengers:
     type: text
     mappings:
-      - type: from_text
-        conditions:
-          - active_flow: collect_trip_information
+      - type: from_llm
 
   travel_class:
     type: text
     mappings:
-      - type: from_text
-        conditions:
-          - active_flow: collect_trip_information
+      - type: from_llm
 
   selected_flight:
     type: text
@@ -45,6 +41,11 @@ slots:
 
   duffel_offer_map:
     type: any
+    mappings:
+      - type: controlled
+
+  flights_available:
+    type: bool
     mappings:
       - type: controlled
 
@@ -117,6 +118,9 @@ responses:
   utter_start_flight_search:
     - text: "Perfect. Let’s start your flight search."
 
+  utter_no_flights_end:
+    - text: "I hope you find a great flight. Feel free to start a new search anytime!"
+
   utter_ask_origin:
     - text: "Where are you flying from?"
 
@@ -181,6 +185,7 @@ responses:
 
 actions:
   - normalize_trip_details
+  - crewai_extract_trip_info
   - crewai_clarify_intent
   - crewai_validate_inputs
   - show_trip_summary

@@ -84,3 +84,31 @@ def create_error_recovery_agent() -> Agent:
         max_iter=3,
         allow_delegation=False,
     )
+
+
+def create_booking_extractor_agent() -> Agent:
+    """
+    Phase 3 — Booking Info Extractor Agent.
+    Reads a natural language booking request and extracts all available
+    fields (origin, destination, dates, passengers, class, trip type) at once.
+    """
+    return Agent(
+        role="Flight Booking Info Extractor",
+        goal=(
+            "Read a natural language flight booking request and extract every piece of "
+            "booking information mentioned: origin city, destination city, departure date, "
+            "return date, number of passengers, cabin class, and trip type."
+        ),
+        backstory=(
+            "You are an expert at understanding travel booking requests in any format. "
+            "When someone says 'book a flight from Mauritius to London on Christmas for my wife and me "
+            "in business class', you immediately know: origin=MRU, destination=LHR, "
+            "date=2026-12-25, passengers=2, class=business. "
+            "You extract everything you can and leave nothing on the table."
+        ),
+        tools=[DateInterpreterTool(), AirportLookupTool()],
+        llm=get_llm(),
+        verbose=True,
+        max_iter=3,
+        allow_delegation=False,
+    )

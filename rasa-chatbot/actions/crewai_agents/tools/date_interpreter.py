@@ -23,8 +23,13 @@ MONTH_NAMES = {
 }
 
 WEEKDAY_NAMES = {
-    "monday": 0, "tuesday": 1, "wednesday": 2,
-    "thursday": 3, "friday": 4, "saturday": 5, "sunday": 6,
+    "monday": 0, "mon": 0,
+    "tuesday": 1, "tue": 1, "tues": 1,
+    "wednesday": 2, "wed": 2,
+    "thursday": 3, "thu": 3, "thur": 3, "thurs": 3,
+    "friday": 4, "fri": 4,
+    "saturday": 5, "sat": 5,
+    "sunday": 6, "sun": 6,
 }
 
 SPECIAL_DATES = {
@@ -86,10 +91,34 @@ class DateInterpreterTool(BaseTool):
         if text == "tomorrow":
             return self._ok(today + timedelta(days=1), "Tomorrow")
 
-        # "in X days / weeks / months"
-        m = re.match(r"in (\d+)\s+(day|days|week|weeks|month|months)", text)
+        # "next week" → 7 days from now; "next weekend" → next Saturday
+        if re.search(r"\bnext\s+week\b", text):
+            return self._ok(today + timedelta(days=7), "Next week")
+        if re.search(r"\bnext\s+weekend\b", text):
+            days_to_sat = (5 - today.weekday()) % 7 or 7
+            return self._ok(today + timedelta(days=days_to_sat), "Next Saturday")
+
+        # "this weekend" → this coming Saturday
+        if re.search(r"\bthis\s+weekend\b", text):
+            days_to_sat = (5 - today.weekday()) % 7
+            if days_to_sat == 0:
+                days_to_sat = 7
+            return self._ok(today + timedelta(days=days_to_sat), "This Saturday")
+
+        # "in X days / weeks / months" — supports digits AND written numbers
+        _NUM_WORDS_MAP = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "a": 1, "an": 1,
+        }
+        m = re.match(
+            r"in\s+(\d+|" + "|".join(_NUM_WORDS_MAP.keys()) + r")\s+(day|days|week|weeks|month|months)",
+            text,
+        )
         if m:
-            n, unit = int(m.group(1)), m.group(2)
+            raw_n = m.group(1)
+            n = int(raw_n) if raw_n.isdigit() else _NUM_WORDS_MAP[raw_n]
+            unit = m.group(2)
             if "day" in unit:
                 d = today + timedelta(days=n)
             elif "week" in unit:
@@ -112,12 +141,18 @@ class DateInterpreterTool(BaseTool):
             d = date(today.year, today.month, calendar.monthrange(today.year, today.month)[1])
             return self._ok(d, "Last day of this month")
 
-        # ── Next weekday ─────────────────────────────────────────────────────────
-        m = re.match(r"next\s+(\w+)", text)
-        if m and m.group(1) in WEEKDAY_NAMES:
-            target = WEEKDAY_NAMES[m.group(1)]
-            days_ahead = (target - today.weekday()) % 7 or 7
-            return self._ok(today + timedelta(days=days_ahead), f"Next {m.group(1).title()}")
+        # ── Next / this weekday ──────────────────────────────────────────────────
+        # "next friday", "this monday", or bare "friday" (anywhere in sentence)
+        for prefix_pat, add_week in [(r"next\s+", True), (r"this\s+", False), (r"", False)]:
+            m = re.search(prefix_pat + r"(" + "|".join(WEEKDAY_NAMES.keys()) + r")\b", text)
+            if m:
+                target = WEEKDAY_NAMES[m.group(1)]
+                days_ahead = (target - today.weekday()) % 7
+                if days_ahead == 0 or add_week:
+                    days_ahead = days_ahead or 7
+                if days_ahead > 0:
+                    return self._ok(today + timedelta(days=days_ahead), f"Next {m.group(1).title()}")
+                break
 
         # ── Special named holidays ───────────────────────────────────────────────
         for name, (month, day) in SPECIAL_DATES.items():
@@ -150,18 +185,22 @@ class DateInterpreterTool(BaseTool):
                         label = ("End" if is_end else "Start") + f" of {mname.title()} {year}"
                         return self._ok(date(year, mnum, day), label)
 
+        # ── "[Month] [Day] [Year]" or "[Day] [Month] [Year]" (with explicit year) ─
+        year_m = re.search(r"\b(20\d{2})\b", text)
+        explicit_year = int(year_m.group(1)) if year_m else None
+
         # ── "[Month] [Day]" or "[Day] [Month]" ──────────────────────────────────
         for mname, mnum in MONTH_NAMES.items():
-            # "july 15" / "july 15th"
-            m = re.search(rf"{mname}\s+(\d{{1,2}})(st|nd|rd|th)?", text)
+            # "july 15" / "july 15th" — ensure day number is not part of a year (e.g. "2026")
+            m = re.search(rf"\b{mname}\s+(\d{{1,2}})\b(?!\d)", text)
             if m:
-                result = self._month_day(mnum, int(m.group(1)), today)
+                result = self._month_day(mnum, int(m.group(1)), today, explicit_year)
                 if result:
                     return result
-            # "15 july" / "15th july"
-            m = re.search(rf"(\d{{1,2}})(st|nd|rd|th)?\s+{mname}", text)
+            # "15 july" / "15th july" — ensure day is standalone
+            m = re.search(rf"\b(\d{{1,2}})(st|nd|rd|th)?\s+{mname}\b", text)
             if m:
-                result = self._month_day(mnum, int(m.group(1)), today)
+                result = self._month_day(mnum, int(m.group(1)), today, explicit_year)
                 if result:
                     return result
 
@@ -189,11 +228,14 @@ class DateInterpreterTool(BaseTool):
     def _ok(self, d: date, label: str) -> str:
         return json.dumps({"resolved": True, "iso_date": d.isoformat(), "explanation": label})
 
-    def _month_day(self, month: int, day: int, today: date):
+    def _month_day(self, month: int, day: int, today: date, explicit_year: int = None):
         try:
-            candidate = date(today.year, month, day)
-            if candidate <= today:
-                candidate = date(today.year + 1, month, day)
+            if explicit_year:
+                candidate = date(explicit_year, month, day)
+            else:
+                candidate = date(today.year, month, day)
+                if candidate <= today:
+                    candidate = date(today.year + 1, month, day)
             return self._ok(candidate, f"{calendar.month_name[month]} {day}, {candidate.year}")
         except ValueError:
             return None

@@ -3,6 +3,7 @@ flows:
     description: Collect the user's flight search details including route, trip type, dates, passengers, and travel class.
     steps:
       - action: utter_start_flight_search
+      - action: crewai_extract_trip_info
       - collect: origin
       - collect: destination
       - action: normalize_trip_details
@@ -14,63 +15,88 @@ flows:
           - if: slots.trip_type contains "one"
             then:
               - collect: departure_date
+              - action: crewai_clarify_intent
+              - collect: departure_date
+              - action: crewai_clarify_intent
               - collect: passengers
               - collect: travel_class
-              - action: crewai_clarify_intent
               - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
-              - collect: selected_flight
-              - action: validate_selected_flight
-              - action: utter_start_passenger_details
-              - collect: passenger_full_name
-              - collect: passenger_email
-              - action: validate_passenger_email
-              - collect: passenger_phone
-              - action: validate_passenger_phone
-              - action: show_final_booking_summary
-              - collect: booking_confirmation
-              - action: confirm_booking
-                next: END
+                next:
+                  - if: slots.flights_available
+                    then:
+                      - collect: selected_flight
+                      - action: validate_selected_flight
+                      - action: utter_start_passenger_details
+                      - collect: passenger_full_name
+                      - collect: passenger_email
+                      - action: validate_passenger_email
+                      - collect: passenger_phone
+                      - action: validate_passenger_phone
+                      - action: show_final_booking_summary
+                      - collect: booking_confirmation
+                      - action: confirm_booking
+                        next: END
+                  - else:
+                      - action: utter_no_flights_end
+                        next: END
           - if: slots.trip_type contains "return"
             then:
               - collect: departure_date
               - collect: return_date
+              - action: crewai_clarify_intent
+              - collect: departure_date
+              - collect: return_date
+              - action: crewai_clarify_intent
               - collect: passengers
               - collect: travel_class
-              - action: crewai_clarify_intent
               - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
-              - collect: selected_flight
-              - action: validate_selected_flight
-              - action: utter_start_passenger_details
-              - collect: passenger_full_name
-              - collect: passenger_email
-              - action: validate_passenger_email
-              - collect: passenger_phone
-              - action: validate_passenger_phone
-              - action: show_final_booking_summary
-              - collect: booking_confirmation
-              - action: confirm_booking
-                next: END
+                next:
+                  - if: slots.flights_available
+                    then:
+                      - collect: selected_flight
+                      - action: validate_selected_flight
+                      - action: utter_start_passenger_details
+                      - collect: passenger_full_name
+                      - collect: passenger_email
+                      - action: validate_passenger_email
+                      - collect: passenger_phone
+                      - action: validate_passenger_phone
+                      - action: show_final_booking_summary
+                      - collect: booking_confirmation
+                      - action: confirm_booking
+                        next: END
+                  - else:
+                      - action: utter_no_flights_end
+                        next: END
           - else:
               - collect: departure_date
+              - action: crewai_clarify_intent
+              - collect: departure_date
+              - action: crewai_clarify_intent
               - collect: passengers
               - collect: travel_class
-              - action: crewai_clarify_intent
               - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
-              - collect: selected_flight
-              - action: validate_selected_flight
-              - action: utter_start_passenger_details
-              - collect: passenger_full_name
-              - collect: passenger_email
-              - action: validate_passenger_email
-              - collect: passenger_phone
-              - action: validate_passenger_phone
-              - action: show_final_booking_summary
-              - collect: booking_confirmation
-              - action: confirm_booking
-                next: END
+                next:
+                  - if: slots.flights_available
+                    then:
+                      - collect: selected_flight
+                      - action: validate_selected_flight
+                      - action: utter_start_passenger_details
+                      - collect: passenger_full_name
+                      - collect: passenger_email
+                      - action: validate_passenger_email
+                      - collect: passenger_phone
+                      - action: validate_passenger_phone
+                      - action: show_final_booking_summary
+                      - collect: booking_confirmation
+                      - action: confirm_booking
+                        next: END
+                  - else:
+                      - action: utter_no_flights_end
+                        next: END
