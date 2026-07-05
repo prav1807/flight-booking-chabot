@@ -1,14 +1,17 @@
 """
-Phase 3 — Booking Review Tool
+Phase 3 — Booking Review Tool + Travel Requirements (combined)
 
-Performs cross-field validation and generates a natural language confidence
-summary of a complete flight booking before the user confirms payment.
-Works without Ollama — pure Python logic.
+Rule-based checks:
+  - Cross-field booking validation (dates, class/pax combos, same-region routes)
+  - Travel entry requirements (visa, ESTA, address, onward travel)
+
+Works without Ollama — pure Python.
 """
 import json
 from datetime import date, datetime
 
 from crewai.tools import BaseTool
+from .travel_requirements import TravelRequirementsTool
 
 
 # Countries / regions used to flag same-country routes
@@ -107,6 +110,23 @@ class BookingReviewTool(BaseTool):
         if "one" in trip_type and origin in _LONG_HAUL and destination in _LONG_HAUL:
             flags.append("ℹ️ One-way long-haul flight. If you plan to return, a round-trip ticket might save money.")
 
+        # ── Travel entry requirements ─────────────────────────────────────────────
+        travel_reqs = []
+        try:
+            req_tool = TravelRequirementsTool()
+            req_result = json.loads(req_tool._run(json.dumps({
+                "origin": origin,
+                "destination": destination,
+                "trip_type": trip_type,
+            })))
+            travel_reqs = req_result.get("requirements") or []
+        except Exception:
+            pass
+
+        # Separate critical requirements from info/warnings
+        critical_reqs = [r for r in travel_reqs if r.get("severity") == "critical"]
+        other_reqs = [r for r in travel_reqs if r.get("severity") != "critical"]
+
         # ── Build natural language summary ────────────────────────────────────────
         class_label = {
             "economy": "Economy", "business": "Business", "first": "First Class",
@@ -138,10 +158,15 @@ class BookingReviewTool(BaseTool):
 
         # ── Confidence score ──────────────────────────────────────────────────────
         critical_flags = [f for f in flags if f.startswith("⚠️")]
+        # Critical travel requirements (visa etc.) also lower confidence
+        if critical_reqs:
+            critical_flags.append("travel_req")
         confidence = "high" if not critical_flags else ("medium" if len(critical_flags) == 1 else "low")
 
         return json.dumps({
             "confidence": confidence,
             "flags": flags,
             "summary": summary,
+            "travel_requirements": travel_reqs,
+            "critical_requirements": critical_reqs,
         })

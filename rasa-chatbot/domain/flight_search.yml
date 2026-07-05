@@ -27,12 +27,16 @@ slots:
   passengers:
     type: text
     mappings:
-      - type: from_llm
+      - type: from_text
+        conditions:
+          - active_flow: collect_trip_information
 
   travel_class:
     type: text
     mappings:
-      - type: from_llm
+      - type: from_text
+        conditions:
+          - active_flow: collect_trip_information
 
   selected_flight:
     type: text

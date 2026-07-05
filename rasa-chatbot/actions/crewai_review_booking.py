@@ -86,8 +86,27 @@ class CrewAIReviewBooking(Action):
         if summary:
             msg += f"**{summary}**\n\n"
 
+        # ── Critical travel requirements first (visa, ESTA, etc.) ─────────────────
+        critical_reqs = result.get("critical_requirements") or []
+        travel_reqs = result.get("travel_requirements") or []
+        other_reqs = [r for r in travel_reqs if r not in critical_reqs]
+
+        if critical_reqs:
+            msg += "🛂 **Important Travel Requirements:**\n"
+            for req in critical_reqs:
+                msg += f"❗ {req['message']}\n"
+            msg += "\n"
+
+        if other_reqs:
+            msg += "📌 **Travel Notes:**\n"
+            for req in other_reqs:
+                icon_r = "⚠️" if req.get("severity") == "warning" else "ℹ️"
+                msg += f"{icon_r} {req['message']}\n"
+            msg += "\n"
+
+        # ── Booking flags ─────────────────────────────────────────────────────────
         if flags:
-            msg += "**Notes:**\n"
+            msg += "**Booking Notes:**\n"
             for flag in flags:
                 msg += f"{flag}\n"
             msg += "\n"
@@ -95,6 +114,8 @@ class CrewAIReviewBooking(Action):
         # Use LLM personalised message if available, otherwise generic
         if llm_message:
             msg += llm_message
+        elif critical_reqs:
+            msg += "Please ensure you have the required travel documents before confirming your booking."
         elif confidence == "high":
             msg += "Everything looks good! Here is your final booking summary:"
         elif confidence == "medium":

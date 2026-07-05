@@ -68,7 +68,6 @@ def _rule_extract(text: str) -> Dict[str, Optional[str]]:
     if route_match:
         origin_text = route_match.group(1).strip()
         dest_text = route_match.group(2).strip()
-        # Only accept if they look like real place names (not generic words)
         if origin_text and origin_text not in _NON_CITY_WORDS and len(origin_text) > 1:
             try:
                 r = json.loads(_airport_tool._run(json.dumps({"query": origin_text})))
@@ -83,6 +82,30 @@ def _rule_extract(text: str) -> Dict[str, Optional[str]]:
                     result["destination"] = r["code"]
             except Exception:
                 pass
+
+    # "to London from Mauritius" / "travel to X from Y" (reversed order)
+    if not result.get("origin") or not result.get("destination"):
+        rev_match = re.search(
+            r"\bto\s+([\w\s]+?)\s+from\s+([\w\s]+?)(?=\s+(?:on|for|in|next|this|tomorrow|one|return|round|\d)|$)",
+            t
+        )
+        if rev_match:
+            dest_text = rev_match.group(1).strip()
+            origin_text = rev_match.group(2).strip()
+            if not result.get("destination") and dest_text and dest_text not in _NON_CITY_WORDS:
+                try:
+                    r = json.loads(_airport_tool._run(json.dumps({"query": dest_text})))
+                    if r.get("found"):
+                        result["destination"] = r["code"]
+                except Exception:
+                    pass
+            if not result.get("origin") and origin_text and origin_text not in _NON_CITY_WORDS:
+                try:
+                    r = json.loads(_airport_tool._run(json.dumps({"query": origin_text})))
+                    if r.get("found"):
+                        result["origin"] = r["code"]
+                except Exception:
+                    pass
 
     # "fly to London" / "going to Paris" / "fly me to New York" (without explicit origin)
     if not result.get("destination"):
