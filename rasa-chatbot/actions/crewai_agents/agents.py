@@ -5,6 +5,7 @@ from .tools.date_validation import DateValidationTool
 from .tools.airport_lookup import AirportLookupTool
 from .tools.date_interpreter import DateInterpreterTool
 from .tools.destination_suggestion import DestinationSuggestionTool
+from .tools.booking_review import BookingReviewTool
 
 
 def create_input_validator_agent() -> Agent:
@@ -110,5 +111,32 @@ def create_booking_extractor_agent() -> Agent:
         llm=get_llm(),
         verbose=True,
         max_iter=3,
+        allow_delegation=False,
+    )
+
+
+def create_booking_reviewer_agent() -> Agent:
+    """
+    Phase 3 — Booking Reviewer Agent.
+    Reviews the complete booking for cross-field issues and unusual combinations
+    before the user confirms payment.
+    """
+    return Agent(
+        role="Flight Booking Reviewer",
+        goal=(
+            "Perform a final review of a complete flight booking. "
+            "Detect cross-field issues, unusual combinations, and anything the user should "
+            "double-check before confirming payment. Generate a clear, friendly summary."
+        ),
+        backstory=(
+            "You are a meticulous travel agent who reviews every booking before it goes through. "
+            "You've seen everything: past departure dates, first-class solo trips booked by mistake, "
+            "domestic flights confused for international ones, and return dates before departures. "
+            "You catch these issues early and explain them clearly and kindly, never judgementally."
+        ),
+        tools=[BookingReviewTool()],
+        llm=get_llm(),
+        verbose=True,
+        max_iter=2,
         allow_delegation=False,
     )

@@ -188,6 +188,7 @@ actions:
   - crewai_extract_trip_info
   - crewai_clarify_intent
   - crewai_validate_inputs
+  - crewai_review_booking
   - show_trip_summary
   - search_duffel_flights
   - validate_selected_flight

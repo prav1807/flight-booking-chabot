@@ -34,6 +34,7 @@ flows:
                       - action: validate_passenger_email
                       - collect: passenger_phone
                       - action: validate_passenger_phone
+                      - action: crewai_review_booking
                       - action: show_final_booking_summary
                       - collect: booking_confirmation
                       - action: confirm_booking
@@ -65,6 +66,7 @@ flows:
                       - action: validate_passenger_email
                       - collect: passenger_phone
                       - action: validate_passenger_phone
+                      - action: crewai_review_booking
                       - action: show_final_booking_summary
                       - collect: booking_confirmation
                       - action: confirm_booking
@@ -93,6 +95,7 @@ flows:
                       - action: validate_passenger_email
                       - collect: passenger_phone
                       - action: validate_passenger_phone
+                      - action: crewai_review_booking
                       - action: show_final_booking_summary
                       - collect: booking_confirmation
                       - action: confirm_booking
@@ -100,3 +103,4 @@ flows:
                   - else:
                       - action: utter_no_flights_end
                         next: END
+

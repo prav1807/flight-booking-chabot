@@ -3,8 +3,8 @@ import re
 
 from crewai import Crew, Process
 
-from .agents import create_input_validator_agent, create_intent_clarifier_agent, create_error_recovery_agent, create_booking_extractor_agent
-from .tasks import create_validation_task, create_clarification_task, create_error_recovery_task, create_extraction_task
+from .agents import create_input_validator_agent, create_intent_clarifier_agent, create_error_recovery_agent, create_booking_extractor_agent, create_booking_reviewer_agent
+from .tasks import create_validation_task, create_clarification_task, create_error_recovery_task, create_extraction_task, create_booking_review_task
 
 
 def run_input_validation_crew(trip_details: dict) -> dict:
@@ -134,6 +134,39 @@ def run_extraction_crew(message: str) -> dict:
     """
     agent = create_booking_extractor_agent()
     task = create_extraction_task(agent, message)
+
+    crew = Crew(
+        agents=[agent],
+        tasks=[task],
+        process=Process.sequential,
+        verbose=False,
+    )
+
+    result = crew.kickoff()
+    raw = str(result)
+
+    json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return {}
+
+
+def run_booking_review_crew(booking: dict) -> dict:
+    """
+    Phase 3 — Runs the Booking Reviewer Crew on a complete booking dict.
+
+    Performs cross-field review: date sanity, unusual class/pax combos,
+    same-region routes, and generates a natural language summary.
+
+    Returns a dict with: confidence, flags, summary, message.
+    Requires Ollama to be running (LLM crew). Falls back gracefully.
+    """
+    agent = create_booking_reviewer_agent()
+    task = create_booking_review_task(agent, booking)
 
     crew = Crew(
         agents=[agent],

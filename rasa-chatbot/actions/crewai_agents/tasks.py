@@ -162,3 +162,29 @@ def create_extraction_task(agent, message: str) -> Task:
         ),
         agent=agent,
     )
+
+
+def create_booking_review_task(agent, booking: dict) -> Task:
+    """
+    Phase 3 — Task for the Booking Reviewer Agent.
+    Reviews a complete booking for cross-field issues and generates a summary.
+    """
+    return Task(
+        description=(
+            f"Review this complete flight booking and provide a quality assessment:\n\n"
+            f"{json.dumps(booking, indent=2)}\n\n"
+            "Use the Booking Review Tool to perform the full review.\n"
+            "Input to the tool: the booking JSON above as a string.\n\n"
+            "Then interpret the result and return a JSON object:\n"
+            "{{\n"
+            '  "confidence": "high/medium/low",\n'
+            '  "flags": ["list of warnings or notes"],\n'
+            '  "summary": "natural language one-line booking summary",\n'
+            '  "message": "friendly message to show the user before they confirm"\n'
+            "}}"
+        ),
+        expected_output=(
+            "JSON with confidence, flags, summary, and a friendly user-facing message."
+        ),
+        agent=agent,
+    )
