@@ -1,0 +1,193 @@
+slots:
+  origin:
+    type: text
+    mappings:
+      - type: from_llm
+
+  destination:
+    type: text
+    mappings:
+      - type: from_llm
+
+  trip_type:
+    type: text
+    mappings:
+      - type: from_llm
+
+  departure_date:
+    type: text
+    mappings:
+      - type: from_llm
+
+  return_date:
+    type: text
+    mappings:
+      - type: from_llm
+
+  passengers:
+    type: text
+    mappings:
+      - type: from_text
+        conditions:
+          - active_flow: collect_trip_information
+
+  travel_class:
+    type: text
+    mappings:
+      - type: from_text
+        conditions:
+          - active_flow: collect_trip_information
+
+  selected_flight:
+    type: text
+    mappings:
+      - type: from_llm
+
+  duffel_offer_map:
+    type: any
+    mappings:
+      - type: controlled
+
+  selected_duffel_offer_id:
+    type: text
+    mappings:
+      - type: controlled
+
+  selected_flight_confirmed:
+    type: bool
+    mappings:
+      - type: controlled
+
+  passenger_full_name:
+    type: text
+    mappings:
+      - type: from_llm
+
+  passenger_email:
+    type: text
+    mappings:
+      - type: from_llm
+
+  passenger_phone:
+    type: text
+    mappings:
+      - type: from_llm
+
+  booking_confirmed:
+    type: bool
+    mappings:
+      - type: controlled
+
+  booking_confirmation:
+    type: text
+    mappings:
+      - type: from_llm
+
+  booking_reference:
+    type: text
+    mappings:
+      - type: controlled
+
+  origin_airport:
+    type: text
+    mappings:
+      - type: from_llm
+
+  destination_airport:
+    type: text
+    mappings:
+      - type: from_llm
+
+  origin_airport_options:
+    type: any
+    mappings:
+      - type: controlled
+
+  destination_airport_options:
+    type: any
+    mappings:
+      - type: controlled
+
+  booking_reference_lookup:
+    type: text
+    mappings:
+      - type: from_llm
+
+responses:
+  utter_start_flight_search:
+    - text: "Perfect. Let’s start your flight search."
+
+  utter_ask_origin:
+    - text: "Where are you flying from?"
+
+  utter_ask_destination:
+    - text: "Where are you flying to?"
+
+  utter_ask_trip_type:
+    - text: "Is this a one-way or return trip?"
+
+  utter_ask_departure_date:
+    - text: "What is your departure date?"
+
+  utter_ask_return_date:
+    - text: "What is your return date?"
+
+  utter_ask_passengers:
+    - text: "How many passengers are travelling?"
+
+  utter_ask_travel_class:
+    - text: "Which travel class would you like? Economy, Premium Economy, Business, or First Class?"
+
+  utter_ask_selected_flight:
+    - text: "Which flight option would you like to select? You can choose 1, 2, or 3."
+
+  utter_start_passenger_details:
+    - text: "Great. I’ll now collect passenger details."
+
+  utter_ask_passenger_full_name:
+    - text: "What is the passenger's full name as shown on the passport?"
+
+  utter_ask_passenger_email:
+    - text: "What email address should we use for the booking confirmation?"
+
+  utter_ask_passenger_phone:
+    - text: "What phone number should we use for the booking?"
+
+  utter_ask_booking_confirmation:
+    - text: "To confirm this booking, please type: confirm booking. To cancel, type: cancel booking."
+
+  utter_ask_origin_airport:
+    - text: "Which origin airport would you like to use? Please enter the airport code, for example DXB."
+
+  utter_ask_destination_airport:
+    - text: "Which destination airport would you like to use? Please enter the airport code, for example LHR."
+
+  utter_ask_booking_reference_lookup:
+    - text: "Please enter your booking reference."
+
+  utter_confirm_search_details:
+    - text: |
+        Great, find below your flight search details:
+
+        From: {origin}
+        To: {destination}
+        Trip type: {trip_type}
+        Departure date: {departure_date}
+        Return date: {return_date}
+        Passengers: {passengers}
+        Travel class: {travel_class}
+
+        Here are the available flights options:
+
+actions:
+  - normalize_trip_details
+  - show_trip_summary
+  - search_duffel_flights
+  - validate_selected_flight
+  - show_final_booking_summary
+  - confirm_booking
+  - validate_passenger_email
+  - validate_passenger_phone
+  - save_booking_to_supabase
+  - check_airport_options
+  - retrieve_booking_from_supabase

@@ -1,0 +1,7 @@
+flows:
+  retrieve_booking:
+    description: Retrieve an existing booking using the booking reference.
+    steps:
+      - collect: booking_reference_lookup
+      - action: retrieve_booking_from_supabase
+        next: END

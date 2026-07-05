@@ -1,0 +1,14 @@
+version: "3.1"
+
+slots:
+  return_value:
+    type: any
+    mappings:
+      - type: controlled
+
+responses:
+  utter_greet:
+    - text: "Hello 👋 Welcome to Emi, your flight booking assistant. I can help you search flights and prepare a booking."
+
+  utter_anything_else:
+    - text: "Is there anything else I can help you with?"

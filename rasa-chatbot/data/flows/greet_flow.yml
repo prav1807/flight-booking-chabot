@@ -1,0 +1,6 @@
+flows:
+  greet_user:
+    description: Greet the user when they say hello or start the chat.
+    steps:
+      - action: utter_greet
+        next: END
