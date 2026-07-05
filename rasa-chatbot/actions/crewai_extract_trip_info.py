@@ -10,6 +10,7 @@ from rasa_sdk.events import SlotSet
 from .normalisation_service import NormalizationService
 from .crewai_agents.tools.date_interpreter import DateInterpreterTool
 from .crewai_agents.tools.airport_lookup import AirportLookupTool
+from .crewai_agents.ollama_health import is_ollama_running
 
 _date_tool = DateInterpreterTool()
 _airport_tool = AirportLookupTool()
@@ -210,17 +211,32 @@ class CrewAIExtractTripInfo(Action):
         if not full_context:
             return []
 
-        # Step 1: Rule-based extraction (always works)
+        # Step 1: Rule-based extraction (always works, no Ollama)
         extracted = _rule_extract(full_context)
 
-        # Step 2: CrewAI LLM fills gaps (optional, requires Ollama)
-        try:
-            llm_result = _llm_extract(full_context)
-            for k, v in llm_result.items():
-                if v and not extracted.get(k):
-                    extracted[k] = v
-        except Exception:
-            pass  # Rule-based is sufficient for most common requests
+        # Step 2: Ollama LLM fills gaps (smarter, handles complex phrasing)
+        if is_ollama_running():
+            missing_fields = [k for k in ["origin", "destination", "trip_type", "departure_date", "passengers", "travel_class"] if not extracted.get(k)]
+            if missing_fields:
+                try:
+                    from .crewai_agents.crews import run_extraction_crew
+                    llm_result = run_extraction_crew(full_context)
+                    for k, v in llm_result.items():
+                        if v and not extracted.get(k):
+                            extracted[k] = v
+                    print(f"[CrewAI] Ollama boosted extraction: filled {[k for k in missing_fields if extracted.get(k)]}")
+                except Exception as e:
+                    print(f"[CrewAI] LLM extraction failed (using rule-based): {e}")
+        else:
+            # Fallback: rule-based only
+            try:
+                from .crewai_agents.crews import run_extraction_crew
+                llm_result = run_extraction_crew(full_context)
+                for k, v in llm_result.items():
+                    if v and not extracted.get(k):
+                        extracted[k] = v
+            except Exception:
+                pass  # Rule-based is sufficient for most common requests
 
         if not any(extracted.values()):
             return []

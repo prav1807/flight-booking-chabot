@@ -149,6 +149,9 @@ class NormalizationService:
 
         try:
             cleaned = re.sub(r"(\d+)(st|nd|rd|th)", r"\1", text)
+            # If already ISO format (YYYY-MM-DD), return as-is — never re-parse
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", cleaned):
+                return cleaned
             parsed = parser.parse(cleaned, dayfirst=True)
             return parsed.strftime("%Y-%m-%d")
         except Exception:

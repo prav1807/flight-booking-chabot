@@ -9,6 +9,7 @@ from rasa_sdk.events import SlotSet
 
 from .crewai_agents.tools.date_interpreter import DateInterpreterTool
 from .crewai_agents.tools.destination_suggestion import DestinationSuggestionTool
+from .crewai_agents.ollama_health import is_ollama_running
 
 # Singletons — instantiate once at import time
 _date_tool = DateInterpreterTool()
@@ -126,9 +127,11 @@ class CrewAIClarifyIntent(Action):
 
     def _resolve_date(self, text: str, today: str) -> Optional[Dict[str, str]]:
         """
-        Calls DateInterpreterTool directly. No LLM required.
+        1. Tries rule-based DateInterpreterTool (no Ollama needed).
+        2. If that fails AND Ollama is running, asks the LLM crew to interpret the date.
         Returns {"iso_date": "YYYY-MM-DD", "explanation": "..."} or None.
         """
+        # Step 1: Rule-based (fast, no network)
         try:
             raw = _date_tool._run(json.dumps({"date_text": str(text), "today": today}))
             result = json.loads(raw)
@@ -136,5 +139,21 @@ class CrewAIClarifyIntent(Action):
                 return result
         except Exception:
             pass
+
+        # Step 2: LLM fallback via Ollama (smarter, handles complex expressions)
+        if is_ollama_running():
+            try:
+                from .crewai_agents.crews import run_clarification_crew
+                llm_result = run_clarification_crew({
+                    "departure_date": text,
+                    "return_date": None,
+                    "destination": None,
+                }, today)
+                iso = (llm_result.get("resolved") or {}).get("departure_date")
+                if iso and re.match(r"^\d{4}-\d{2}-\d{2}$", str(iso)):
+                    return {"iso_date": iso, "explanation": f"interpreted by AI as {iso}"}
+            except Exception:
+                pass
+
         return None
 

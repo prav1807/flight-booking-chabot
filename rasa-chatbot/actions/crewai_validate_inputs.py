@@ -7,6 +7,7 @@ from rasa_sdk.events import SlotSet
 
 from .crewai_agents.tools.date_validation import DateValidationTool
 from .crewai_agents.tools.airport_lookup import AirportLookupTool
+from .crewai_agents.ollama_health import is_ollama_running
 
 # Singletons
 _date_validator = DateValidationTool()
@@ -55,13 +56,18 @@ class CrewAIValidateInputs(Action):
         events: List[Dict[Text, Any]] = []
 
         # 1. Validate dates directly via DateValidationTool
+        # Note: skip "past date" check here — crewai_clarify_intent already resolved
+        # dates to ISO format. Only check logical constraints (return > departure).
         try:
             date_result = json.loads(_date_validator._run(json.dumps({
                 "departure_date": trip_details["departure_date"],
                 "return_date": trip_details["return_date"],
                 "trip_type": trip_details["trip_type"] or "one-way",
             })))
-            errors.extend(date_result.get("errors") or [])
+            for err in (date_result.get("errors") or []):
+                # Skip "in the past" error — date was already validated upstream
+                if "in the past" not in err.lower():
+                    errors.append(err)
         except Exception:
             pass
 
@@ -120,20 +126,30 @@ class CrewAIValidateInputs(Action):
         if not errors:
             return events
 
-        # Try LLM Error Recovery for friendlier messages (optional — requires Ollama)
+        # ── Error messaging: Ollama first, raw fallback ───────────────────────────
         messages_to_show = errors
-        try:
-            from .crewai_agents.crews import run_error_recovery_crew
-            recovery = run_error_recovery_crew(errors, trip_details)
-            if recovery.get("recovery_messages"):
-                messages_to_show = recovery["recovery_messages"]
-            suggested = recovery.get("suggested_corrections") or {}
-            if suggested.get("origin"):
-                events.append(SlotSet("origin", suggested["origin"]))
-            if suggested.get("destination"):
-                events.append(SlotSet("destination", suggested["destination"]))
-        except Exception:
-            pass  # Use raw error messages — system still works
+        if is_ollama_running():
+            try:
+                from .crewai_agents.crews import run_error_recovery_crew
+                recovery = run_error_recovery_crew(errors, trip_details)
+                if recovery.get("recovery_messages"):
+                    messages_to_show = recovery["recovery_messages"]
+                suggested = recovery.get("suggested_corrections") or {}
+                if suggested.get("origin"):
+                    events.append(SlotSet("origin", suggested["origin"]))
+                if suggested.get("destination"):
+                    events.append(SlotSet("destination", suggested["destination"]))
+            except Exception:
+                pass  # Use raw error messages
+        else:
+            # Try anyway — may work if Ollama just started
+            try:
+                from .crewai_agents.crews import run_error_recovery_crew
+                recovery = run_error_recovery_crew(errors, trip_details)
+                if recovery.get("recovery_messages"):
+                    messages_to_show = recovery["recovery_messages"]
+            except Exception:
+                pass
 
         for message in messages_to_show:
             dispatcher.utter_message(text=f"❌ {message}")
