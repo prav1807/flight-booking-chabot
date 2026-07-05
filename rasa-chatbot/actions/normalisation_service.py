@@ -1,6 +1,12 @@
 from datetime import datetime, timedelta
 from dateutil import parser
 import re
+from difflib import get_close_matches
+
+try:
+    from .crewai_agents.tools.airport_lookup import AIRPORT_DB
+except ImportError:
+    AIRPORT_DB = {}
 
 
 class NormalizationService:
@@ -94,7 +100,22 @@ class NormalizationService:
         }
 
         text = str(value or "").lower().strip()
-        return mapping.get(text, str(value).upper())
+
+        # Exact match in legacy mapping
+        if text in mapping:
+            return mapping[text]
+
+        # If it already looks like an IATA code, return it as-is
+        if len(text) == 3 and text.isalpha():
+            return text.upper()
+
+        # Fuzzy match against the full airport DB (handles typos like "mauritiuss")
+        if AIRPORT_DB:
+            matches = get_close_matches(text, AIRPORT_DB.keys(), n=1, cutoff=0.75)
+            if matches:
+                return AIRPORT_DB[matches[0]]["code"]
+
+        return str(value).upper()
 
     @staticmethod
     def normalize_date(value):

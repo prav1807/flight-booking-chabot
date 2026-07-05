@@ -16,6 +16,8 @@ flows:
               - collect: departure_date
               - collect: passengers
               - collect: travel_class
+              - action: crewai_clarify_intent
+              - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
               - collect: selected_flight
@@ -36,6 +38,8 @@ flows:
               - collect: return_date
               - collect: passengers
               - collect: travel_class
+              - action: crewai_clarify_intent
+              - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
               - collect: selected_flight
@@ -54,6 +58,8 @@ flows:
               - collect: departure_date
               - collect: passengers
               - collect: travel_class
+              - action: crewai_clarify_intent
+              - action: crewai_validate_inputs
               - action: show_trip_summary
               - action: search_duffel_flights
               - collect: selected_flight

@@ -181,6 +181,8 @@ responses:
 
 actions:
   - normalize_trip_details
+  - crewai_clarify_intent
+  - crewai_validate_inputs
   - show_trip_summary
   - search_duffel_flights
   - validate_selected_flight

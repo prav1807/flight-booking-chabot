@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.rasa/
+models/
+.venv/
+.venv-actions/
+.python-version

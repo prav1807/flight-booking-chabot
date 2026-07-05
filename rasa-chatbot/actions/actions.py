@@ -9,3 +9,5 @@ from .validate_passenger_phone import ValidatePassengerPhone
 from .save_booking_to_supabase import SaveBookingToSupabase
 from .check_airport_options import CheckAirportOptions
 from .retrieve_booking_from_supabase import RetrieveBookingFromSupabase
+from .crewai_clarify_intent import CrewAIClarifyIntent
+from .crewai_validate_inputs import CrewAIValidateInputs
