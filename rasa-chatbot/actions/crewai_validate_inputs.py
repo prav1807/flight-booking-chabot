@@ -8,10 +8,13 @@ from rasa_sdk.events import SlotSet
 from .crewai_agents.tools.date_validation import DateValidationTool
 from .crewai_agents.tools.airport_lookup import AirportLookupTool
 from .crewai_agents.ollama_health import is_ollama_running
+from .middleware import EscalationManager, AuditLogger
 
 # Singletons
 _date_validator = DateValidationTool()
 _airport_lookup = AirportLookupTool()
+_escalation_manager = EscalationManager()
+_audit_logger = AuditLogger()
 
 
 class CrewAIValidateInputs(Action):
@@ -124,6 +127,42 @@ class CrewAIValidateInputs(Action):
 
         # No errors — all good
         if not errors:
+            _audit_logger.log(
+                agent="Input Validator",
+                action="validate_inputs",
+                sender_id=tracker.sender_id,
+                input_data=trip_details,
+                output_data={"valid": True},
+                status="success",
+            )
+            events.append(SlotSet("validation_failure_count", 0))
+            return events
+
+        # ── Escalation check: too many consecutive failures → hand off to a human ──
+        failure_count = int(tracker.get_slot("validation_failure_count") or 0) + 1
+        events.append(SlotSet("validation_failure_count", failure_count))
+
+        _audit_logger.log(
+            agent="Input Validator",
+            action="validate_inputs",
+            sender_id=tracker.sender_id,
+            input_data=trip_details,
+            output_data={"valid": False, "errors": errors, "failure_count": failure_count},
+            status="rejected",
+        )
+
+        if _escalation_manager.should_escalate(failure_count):
+            _audit_logger.log(
+                agent="Escalation Manager",
+                action="escalate",
+                sender_id=tracker.sender_id,
+                input_data=_escalation_manager.build_escalation_payload(tracker),
+                status="escalated",
+            )
+            dispatcher.utter_message(
+                text=_escalation_manager.escalation_message("repeated_validation_failures")
+            )
+            events.append(SlotSet("validation_failure_count", 0))
             return events
 
         # ── Error messaging: Ollama first, raw fallback ───────────────────────────

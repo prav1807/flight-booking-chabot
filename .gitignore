@@ -6,3 +6,4 @@ models/
 .venv/
 .venv-actions/
 .python-version
+rasa-chatbot/logs/

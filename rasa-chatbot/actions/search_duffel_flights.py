@@ -6,6 +6,10 @@ from rasa_sdk.events import SlotSet
 
 from .duffel_client import DuffelClient
 from .normalisation_service import NormalizationService
+from .middleware import RateLimiter, AuditLogger
+
+_rate_limiter = RateLimiter()
+_audit_logger = AuditLogger()
 
 
 class SearchDuffelFlights(Action):
@@ -18,6 +22,24 @@ class SearchDuffelFlights(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[Dict[Text, Any]]:
+
+        # ── Rate limiting: protect Duffel API from excessive searches ──
+        limit_result = _rate_limiter.check_search(tracker.sender_id)
+        if not limit_result.get("allowed"):
+            _audit_logger.log(
+                agent="Rate Limiter",
+                action="search_flight",
+                sender_id=tracker.sender_id,
+                output_data=limit_result,
+                status="rate_limited",
+            )
+            dispatcher.utter_message(
+                text=(
+                    "You've made too many flight searches recently. "
+                    f"Please try again in about {int(limit_result.get('retry_after_seconds', 60))} seconds."
+                )
+            )
+            return [SlotSet("flights_available", False)]
 
         try:
             client = DuffelClient()

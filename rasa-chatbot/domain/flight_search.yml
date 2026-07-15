@@ -118,6 +118,56 @@ slots:
     mappings:
       - type: from_llm
 
+  booking_lookup_surname:
+    type: text
+    mappings:
+      - type: from_llm
+
+  validation_failure_count:
+    type: float
+    mappings:
+      - type: controlled
+
+  payment_session_id:
+    type: text
+    mappings:
+      - type: controlled
+
+  payment_checkout_url:
+    type: text
+    mappings:
+      - type: controlled
+
+  payment_status:
+    type: text
+    mappings:
+      - type: controlled
+
+  payment_confirmation_message:
+    type: text
+    mappings:
+      - type: from_llm
+
+  ticket_number:
+    type: text
+    mappings:
+      - type: controlled
+
+  new_departure_date:
+    type: text
+    mappings:
+      - type: from_llm
+
+  change_fee_amount:
+    type: text
+    mappings:
+      - type: controlled
+
+  change_confirmation:
+    type: text
+    mappings:
+      - type: from_llm
+
 responses:
   utter_start_flight_search:
     - text: "Perfect. Let’s start your flight search."
@@ -173,6 +223,21 @@ responses:
   utter_ask_booking_reference_lookup:
     - text: "Please enter your booking reference."
 
+  utter_ask_booking_lookup_surname:
+    - text: "For security, please also confirm the surname on the booking."
+
+  utter_escalate_to_human:
+    - text: "It looks like we're having trouble getting these details right. Let me connect you with a travel specialist who can help you complete this booking."
+
+  utter_ask_payment_confirmation_message:
+    - text: "Once you've completed payment on the checkout page, just let me know (e.g. \"I've paid\")."
+
+  utter_ask_new_departure_date:
+    - text: "What new departure date would you like?"
+
+  utter_ask_change_confirmation:
+    - text: "Would you like to proceed with this change? Please type: yes proceed, or: no cancel."
+
   utter_confirm_search_details:
     - text: |
         Great, find below your flight search details:
@@ -203,3 +268,8 @@ actions:
   - save_booking_to_supabase
   - check_airport_options
   - retrieve_booking_from_supabase
+  - create_payment_session
+  - check_payment_status
+  - issue_ticket
+  - crewai_change_booking
+  - apply_booking_change

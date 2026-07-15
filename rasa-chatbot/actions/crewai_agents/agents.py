@@ -6,6 +6,7 @@ from .tools.airport_lookup import AirportLookupTool
 from .tools.date_interpreter import DateInterpreterTool
 from .tools.destination_suggestion import DestinationSuggestionTool
 from .tools.booking_review import BookingReviewTool
+from .tools.change_fee_calculator import ChangeFeeCalculatorTool
 
 
 def create_input_validator_agent() -> Agent:
@@ -140,3 +141,38 @@ def create_booking_reviewer_agent() -> Agent:
         max_iter=2,
         allow_delegation=False,
     )
+
+
+def create_change_booking_agent() -> Agent:
+    """
+    Phase 4 — Change Booking Agent.
+
+    Explains a flight-date change and its associated fee in clear, friendly
+    language. Per the architecture doc, this agent NEVER decides whether a
+    change is allowed or calculates the fee itself — PolicyGuard and
+    ChangeFeeCalculatorTool are the deterministic authorities for that. This
+    agent's only job is to turn their structured output into a message like:
+    "Your change fee is AED 350 plus AED 220 fare difference. Proceed?"
+    """
+    return Agent(
+        role="Flight Change Booking Specialist",
+        goal=(
+            "Explain a flight date change request to the customer in clear, friendly language, "
+            "including the exact change fee and any fare difference calculated by the fee tool. "
+            "Never invent or adjust the fee — always use the numbers provided by the tool. "
+            "Ask the customer to confirm before any change is applied."
+        ),
+        backstory=(
+            "You are an experienced travel agent who specialises in flight date changes. "
+            "You know these are often more sensitive than new bookings — customers are usually "
+            "changing plans for a reason, and unexpected fees are frustrating. "
+            "You always state the fee breakdown plainly and transparently before asking the "
+            "customer to confirm, exactly as calculated by the airline's fee schedule."
+        ),
+        tools=[ChangeFeeCalculatorTool()],
+        llm=get_llm(),
+        verbose=True,
+        max_iter=2,
+        allow_delegation=False,
+    )
+

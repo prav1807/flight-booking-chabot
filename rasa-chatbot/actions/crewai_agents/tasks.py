@@ -188,3 +188,35 @@ def create_booking_review_task(agent, booking: dict) -> Task:
         ),
         agent=agent,
     )
+
+
+def create_change_booking_task(agent, change_context: dict, fee_result: dict) -> Task:
+    """
+    Phase 4 — Task for the Change Booking Agent.
+    Explains an already-approved, already-priced date change to the customer.
+    The agent must not alter the fee numbers — only phrase them clearly.
+    """
+    return Task(
+        description=(
+            f"A customer wants to change their flight's departure date. The change has "
+            f"already been approved by policy, and the fee has already been calculated by "
+            f"the Change Fee Calculator Tool. DO NOT recalculate or alter these numbers — "
+            f"only explain them clearly.\n\n"
+            f"Change details:\n{json.dumps(change_context, indent=2)}\n\n"
+            f"Fee breakdown (already calculated, use exactly as given):\n"
+            f"{json.dumps(fee_result, indent=2)}\n\n"
+            "Write a short, friendly message that states:\n"
+            "1. The old and new departure dates.\n"
+            "2. The flat change fee.\n"
+            "3. The fare difference (if greater than 0).\n"
+            "4. The total amount due.\n"
+            "5. Ends by asking the customer to confirm ('yes proceed' / 'no cancel').\n\n"
+            "Return ONLY a valid JSON object with NO extra text or markdown:\n"
+            "{{\n"
+            '  "message": "the full friendly message described above"\n'
+            "}}"
+        ),
+        expected_output="JSON with a single 'message' key containing the friendly change summary.",
+        agent=agent,
+    )
+

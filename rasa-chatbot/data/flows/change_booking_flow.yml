@@ -1,0 +1,11 @@
+flows:
+  change_booking:
+    description: Change the departure date on an existing flight booking. Use when the user wants to reschedule, change the date, or move their flight to a different day.
+    steps:
+      - collect: booking_reference_lookup
+      - collect: booking_lookup_surname
+      - collect: new_departure_date
+      - action: crewai_change_booking
+      - collect: change_confirmation
+      - action: apply_booking_change
+        next: END

@@ -26,15 +26,12 @@ class ConfirmBooking(Action):
 
         if confirmation in ["yes", "y", "confirm", "confirmed", "proceed", "checkout", "confirm booking"]:
             dispatcher.utter_message(
-                text=(
-                    "Perfect. Your booking has been confirmed as a draft booking.\n\n"
-                    "Next step will be checkout/payment integration."
-                )
+                text="Great, let's proceed to payment."
             )
             return [
                 SlotSet("booking_confirmed", True),
                 SlotSet("booking_confirmation", None),
-                FollowupAction("save_booking_to_supabase"),
+                FollowupAction("create_payment_session"),
             ]
 
         if confirmation in ["no", "n", "cancel", "not now", "cancel booking"]:
